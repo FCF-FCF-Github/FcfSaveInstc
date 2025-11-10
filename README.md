@@ -8,3 +8,6 @@ local synsaveinstance = loadstring(game:HttpGet(Params.RepoURL .. Params.SSI .. 
 local Options = {} -- Documentation here: https://github.com/Devraj2010isme/BetterSaveinstance/blob/main/README.md
 synsaveinstance(Options)
 ```
+
+update 1.0:
+fixed luau script, deleted lua version
