@@ -1837,15 +1837,15 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	local currentstr, currentsize, totalsize, chunks = "", 0, 0, table.create(1)
 	local savebuffer, savebuffer_size = {}, 1
 	local header =
-		'<!--   --><roblox version="4">'
+		'<!   --><roblox version="4">'
 
 	local StatusText
 
 	local OPTIONS = {
-		mode = "optimized",
+		mode = "full",
 		noscripts = false,
 		scriptcache = true,
-		decomptype = "",
+		decomptype = "custom",
 		timeout = 10,
 		-- * New:
 		__DEBUG_MODE = false,
@@ -1881,7 +1881,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		ShutdownWhenDone = false,
 		AntiIdle = true,
 		Anonymous = false,
-		ReadMe = true,
+		ReadMe = false,
 		FilePath = false,
 		Object = false,
 		IsModel = false,
@@ -1891,8 +1891,8 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		IgnorePropertiesOfNotScriptsOnScriptsMode = false,
 		IgnoreSpecialProperties = ArrayToDict({ "Fluxus", "Solara", "WRD", "JJSploit x Xeno"})[EXECUTOR_NAME] or false, -- ! Please submit more Executors that crash on gethiddenproperty (with this disabled basically). Visual is becaues binarystring gets cut off, JJSploit is because gethiddenproperty returns 0 when it can't read a property instead of failing.
 
-		IsolateLocalPlayer = false, --  #service.StarterGui:GetChildren() == 0
-		IsolateLocalPlayerCharacter = false,
+		IsolateLocalPlayer = true, --  #service.StarterGui:GetChildren() == 0
+		IsolateLocalPlayerCharacter = true,
 		IsolatePlayers = false,
 		IsolateStarterPlayer = false,
 		RemovePlayerCharacters = true,
@@ -2523,10 +2523,10 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	if getscriptbytecode then
 		if (decompile == nil and OPTIONS.decomptype == "") or OPTIONS.decomptype == "custom" then
 			if __DEBUG_MODE then __DEBUG_MODE("Attempting to load Konstant Decompiler. If there is an error/crash after this, set the option decomptype to any string other than custom") end
-			local url = "https://raw.githubusercontent.com/Devraj2010isme/BetterSaveinstance/refs/heads/main/Dependencies/Konstant%20V2.1.luau"
+			local url = "https://raw.githubusercontent.com/FCF-FCF-Github/FcfSaveInstc/refs/heads/main/medal.lua"
 			local konstant = loadstring(HttpGet(url, true))()
 			GLOBAL_ENV.decompile = konstant.decompile
-			if __DEBUG_MODE then __DEBUG_MODE("Konstant Decompiler loaded") end
+			if __DEBUG_MODE then __DEBUG_MODE("Medal Decompiler loaded") end
 		end
 	end
 	do
