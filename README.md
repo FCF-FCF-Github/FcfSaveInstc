@@ -1,4 +1,5 @@
 This fcking script only for me, and is broken, DO NOT USE IT
+btw script only for me, so idc about original license
 
 loadstring
 ```lua
