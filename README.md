@@ -13,7 +13,4 @@ update 1.0:
 fixed luau script, deleted lua version
 
 update 1.1:
-removed constant and added medal
-script ALWAYS uses medal
-also removed options, and made them presetted
-so i can decompile games faster
+reverted to 1.0
