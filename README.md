@@ -1,3 +1,5 @@
+This fcking script only for me, and is broken, DO NOT USE IT
+
 loadstring
 ```lua
 local Params = {
@@ -5,7 +7,7 @@ local Params = {
  SSI = "saveinstance",
 }
 local synsaveinstance = loadstring(game:HttpGet(Params.RepoURL .. Params.SSI .. ".luau", true), Params.SSI)()
-local Options = {} -- Documentation here: https://github.com/Devraj2010isme/BetterSaveinstance/blob/main/README.md
+local Options = {SafeMode = true, mode = "full", SaveBytecode = true, IsolateLocalPlayer = true, IsolateLocalPlayerCharacter = true, NilInstances = true, }
 synsaveinstance(Options)
 ```
 
@@ -13,4 +15,4 @@ update 1.0:
 fixed luau script, deleted lua version
 
 update 1.1:
-reverted to 1.0
+broken script, lolz
