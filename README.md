@@ -8,7 +8,7 @@ local Params = {
  SSI = "saveinstance",
 }
 local synsaveinstance = loadstring(game:HttpGet(Params.RepoURL .. Params.SSI .. ".luau", true), Params.SSI)()
-local Options = {SafeMode = true, mode = "full", SaveBytecode = true, IsolateLocalPlayer = true, IsolateLocalPlayerCharacter = true, NilInstances = true, }
+local Options = {SafeMode = true, mode = "full", SaveBytecode = true, IsolateLocalPlayer = true, IsolateLocalPlayerCharacter = true, NilInstances = true}
 synsaveinstance(Options)
 ```
 
