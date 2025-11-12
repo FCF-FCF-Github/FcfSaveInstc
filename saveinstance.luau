@@ -112,7 +112,7 @@ local getscriptbytecode = global_container.getscriptbytecode -- * A lot of assum
 local base64encode = global_container.base64encode
 
 do -- * Load Region of Déjà Vu
-	if gethiddenproperty and EXECUTOR_NAME ~= "Velocity" then -- Velocity fails due to enums not being supported, but BinaryString and SharedString still are (handled later)
+	if gethiddenproperty and EXECUTOR_NAME ~= "Nihon" then -- Nihon fails due to enums not being supported, but BinaryString and SharedString still are (handled later)
 		local o, r = pcall(gethiddenproperty, workspace, "StreamOutBehavior")
 		if not o or r ~= nil and typeof(r) ~= "EnumItem" then -- * Tests if gethiddenproperty is broken
 			gethiddenproperty = nil
@@ -143,40 +143,6 @@ do -- * Load Region of Déjà Vu
 	local test_str = string.rep("\1\0\0\0\1\2\3\4\5\6\7", 50)
 
 	do
-		if not bit32.byteswap or not pcall(bit32.byteswap, 1) then -- Because Fluxus is missing byteswap
-			bit32 = table.clone(bit32)
-
-			local function tobit(num)
-				num %= (bit32.bxor(num, 32))
-				if 0x80000000 < num then
-					num -= bit32.bxor(num, 32)
-				end
-				return num
-			end
-
-			bit32.byteswap = function(num)
-				local BYTE_SIZE = 8
-				local MAX_BYTE_VALUE = 255
-
-				num %= bit32.bxor(2, 32)
-
-				local a = bit32.band(num, MAX_BYTE_VALUE)
-				num = bit32.rshift(num, BYTE_SIZE)
-
-				local b = bit32.band(num, MAX_BYTE_VALUE)
-				num = bit32.rshift(num, BYTE_SIZE)
-
-				local c = bit32.band(num, MAX_BYTE_VALUE)
-				num = bit32.rshift(num, BYTE_SIZE)
-
-				local d = bit32.band(num, MAX_BYTE_VALUE)
-				num = tobit(bit32.lshift(bit32.lshift(bit32.lshift(a, BYTE_SIZE) + b, BYTE_SIZE) + c, BYTE_SIZE) + d)
-				return num
-			end
-
-			table.freeze(bit32)
-		end
-
 		-- Credits @daily3014 & @XoifaiI
 		local rbxcrypt_base64encode
 		pcall(function()
@@ -949,7 +915,7 @@ XML_Descriptors = {
 		return Identifier
 	end,
 	SecurityCapabilities = nil,
-	-- SystemAddress = function(raw) return raw end, -- PeerId?  -- ? Not sure
+	-- SystemAddress = function(raw) return raw end, -- PeerId? systemAddress as a string in the format "IP|Port", "|" being portDelineator, should not be '.', ':', '%', '-', '/', a number, or a-f  -- ? Not sure
 	-- TweenInfo = function(raw) -- ? Not sure
 	-- 	local __NORMALIZE_NUMBER = XML_Descriptors.__NORMALIZE_NUMBER
 	-- 	local enum = XML_Descriptors.__ENUM
@@ -1634,7 +1600,7 @@ All options are case insensitive.
   - Default: false
 - DisableGethiddenpropertyFallback: `boolean`
   - Prevents detections in some games
-  - Default: true if executor gethiddenproperty is available and passes tests, false otherwise
+  - Default: true if executor gethiddenproperty is available and passes tests and the executor isn't Nihon, false otherwise
 - ShutdownWhenDone: `boolean`
   - Shuts the game down after saveinstance is finished.
   - Default: false
@@ -1663,7 +1629,8 @@ All options are case insensitive.
   - Valid Modes:
     - optimized: Saves a hardcoded list of services, best for general use.
     - full: Saves all services.
-    - scripts: Might be removed soon, don't use this.
+    - scripts: Only saves direct children of the instance being saved that contain scripts
+      - This is useless as if the instance being saved is game, everything in workspace will be saved if there is one script in there (so for now, use a standalonescript dumper)
     - To create a custom mode, provide a table of strings with each string being a service name to save.
   - Change this to invalid mode like "invalid" if you only want ExtraInstances.
   - "optimized" mode is NOT supported with @Object option.
@@ -1754,7 +1721,7 @@ All options are case insensitive.
   - Default: false
 - IgnoreSpecialProperties: `boolean`
   - Prevents calls to gethiddenproperty and uses fallback methods instead. This also helps with crashes. If your file is corrupted after saving, you can try turning this on.
-  - Default: false (except on the executors Fluxus, Solara, Visual, WRD, and JJSploit x Xeno)
+  - Default: false (except on the executors Xeno (includes JJSploit) and Solara)
 - IsolateLocalPlayer: `boolean`
   - Saves Children of LocalPlayer as separate folder and prevents any instance of ClassName Player with .Name identical to LocalPlayer.Name from saving.
   - Enables SaveNotCreatable
@@ -1799,11 +1766,17 @@ All options are case insensitive.
   - Default: true
 - IgnoreSharedStrings: `boolean`
   - Prevents the value type "SharedString" from saving. Prevents Crashes on some executors.
-  - Default: true (except on the executors Wave, Potassium, Zenith, Seliware, Volcano, Velocity and Swift, as they are confirmed to support sharedstrings.)
+  - Default: true (except on the executors Wave, Zenith, Swift, Potassium, Volcano, Velocity, Codex, and Nihon, as they are confirmed to support sharedstrings.)
 - SharedStringOverwrite: `boolean`
   - SharedStrings can also be used for ValueTypes that aren't SharedString, this behavior is not documented anywhere but makes sense (Could create issues though, due to potential ValueType mix-up, only works on certain types which are all base64 encoded so far).
   - Reason: Allows for potential smaller file size (can also be bigger in some cases).
   - Default: false
+- IgnoreSpecialStrings: `boolean`
+  - Prevents special properties with the type "string" from being read by gethiddenproperty. Prevents crashes on some executors.
+  - Default: false (except on the executor Velocity)
+- IgnoreSpecialClassProperties: `boolean`
+  - Prevents special properties with the category "Class" (Properties with instance values) from being read by gethiddenproperty. Prevents crashes on some executors
+  - Default: false (except on the executor Velocity)
 - TreatUnionsAsParts: `boolean`
   - Converts all UnionOperations to Parts. Useful if your Executor isn't able to save (read) Unions, because otherwise they will be invisible.
   - Default: false (except on Solara, Xeno, and JJSploit)
@@ -1837,19 +1810,19 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	local currentstr, currentsize, totalsize, chunks = "", 0, 0, table.create(1)
 	local savebuffer, savebuffer_size = {}, 1
 	local header =
-		'<!   --><roblox version="4">'
+		'<!-- Saved by FCF-FCF-GITHUB --><roblox version="4">'
 
 	local StatusText
 
 	local OPTIONS = {
-		mode = "full",
+		mode = "optimized",
 		noscripts = false,
 		scriptcache = true,
-		decomptype = "custom",
+		decomptype = "",
 		timeout = 10,
 		-- * New:
 		__DEBUG_MODE = false,
-		DisableGethiddenpropertyFallback = gethiddenproperty,
+		DisableGethiddenpropertyFallback = (gethiddenproperty and EXECUTOR_NAME ~= "Nihon") or false,
 		Crashlog = false,
 		-- Binary = false, -- true in syn newer versions (false in our case because no binary support yet), Description: Saves everything in Binary Mode (rbxl/rbxm).
 		Callback = false,
@@ -1859,11 +1832,11 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 		DecompileJobless = false,
 		DecompileIgnore = { -- * Clean these up (merged Old Syn and New Syn)
-			-- "Chat",
+			"Chat",
 			"TextChatService",
 			ModuleScript = nil,
 		},
-		IgnoreDefaultPlayerScripts = not ArrayToDict({ "Wave", "Potassium", "Volcano", "Solara"})[EXECUTOR_NAME],
+		IgnoreDefaultPlayerScripts = true,
 		SaveBytecode = false,
 		SaveBytecodeIfDecompilerFails = false,
 		SaveCompilationErrors = true,
@@ -1881,7 +1854,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		ShutdownWhenDone = false,
 		AntiIdle = true,
 		Anonymous = false,
-		ReadMe = false,
+		ReadMe = true,
 		FilePath = false,
 		Object = false,
 		IsModel = false,
@@ -1889,10 +1862,10 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		IgnoreDefaultProperties = true,
 		IgnoreNotArchivable = true,
 		IgnorePropertiesOfNotScriptsOnScriptsMode = false,
-		IgnoreSpecialProperties = ArrayToDict({ "Fluxus", "Solara", "WRD", "JJSploit x Xeno"})[EXECUTOR_NAME] or false, -- ! Please submit more Executors that crash on gethiddenproperty (with this disabled basically). Visual is becaues binarystring gets cut off, JJSploit is because gethiddenproperty returns 0 when it can't read a property instead of failing.
+		IgnoreSpecialProperties = ArrayToDict({"Xeno", "Solara"})[EXECUTOR_NAME] or false, -- ! Please submit more Executors that crash on gethiddenproperty (with this disabled basically). Xeno (also JJSploit, which uses Xeno's api and has the same identifyexecutor() as Xeno) is because gethiddenproperty returns 0 when it can't read a property instead of failing. Solara's gethiddenproperty is just slow.
 
-		IsolateLocalPlayer = true, --  #service.StarterGui:GetChildren() == 0
-		IsolateLocalPlayerCharacter = true,
+		IsolateLocalPlayer = false, --  #service.StarterGui:GetChildren() == 0
+		IsolateLocalPlayerCharacter = false,
 		IsolatePlayers = false,
 		IsolateStarterPlayer = false,
 		RemovePlayerCharacters = true,
@@ -1922,10 +1895,12 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		SavePropsAsAttributesForNotCreatableFixes = false,
 		-- ! Risky
 
-		IgnoreSharedStrings = not ArrayToDict({ "Wave", "Zenith", "Swift", "Potassium", "Volcano", "Velocity", "Codex"})[EXECUTOR_NAME],
+		IgnoreSharedStrings = not ArrayToDict({ "Wave", "Zenith", "Swift", "Potassium", "Volcano", "Velocity", "Codex", "Nihon" })[EXECUTOR_NAME],
 		SharedStringOverwrite = false,
-		TreatUnionsAsParts = ArrayToDict({ "Solara", "Xeno", "WRD", "Zorara", "JJSploit x Xeno" })[EXECUTOR_NAME] or false,
-		AlternativeWritefile = not ArrayToDict({ "WRD", "Xeno", "Zorara", "JJSploit x Xeno" })[EXECUTOR_NAME],
+		IgnoreSpecialStrings = ArrayToDict({"Velocity"})[EXECUTOR_NAME] or false,
+		IgnoreSpecialClassProperties = ArrayToDict({"Velocity"})[EXECUTOR_NAME] or false,
+		TreatUnionsAsParts = ArrayToDict({ "Solara", "Xeno", "Zorara" })[EXECUTOR_NAME] or false,
+		AlternativeWritefile = not ArrayToDict({"Xeno", "Zorara"})[EXECUTOR_NAME],
 
 		OptionsAliases = { -- You can't really modify these as a user
 			DecompileTimeout = "timeout",
@@ -2185,7 +2160,8 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	end
 	local IgnoreSharedStrings = OPTIONS.IgnoreSharedStrings
 	local SharedStringOverwrite = OPTIONS.SharedStringOverwrite
-
+	local IgnoreSpecialStrings = OPTIONS.IgnoreSpecialStrings
+	local IgnoreSpecialClassProperties = OPTIONS.IgnoreSpecialClassProperties
 	local ldeccache = GLOBAL_ENV.scriptcache
 
 	local DecompileIgnoring, ToSaveList, ldecompile, placename, elapse_t, SaveNotCreatableWillBeEnabled, RecoveredScripts
@@ -2523,10 +2499,10 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	if getscriptbytecode then
 		if (decompile == nil and OPTIONS.decomptype == "") or OPTIONS.decomptype == "custom" then
 			if __DEBUG_MODE then __DEBUG_MODE("Attempting to load Konstant Decompiler. If there is an error/crash after this, set the option decomptype to any string other than custom") end
-			local url = "https://raw.githubusercontent.com/FCF-FCF-Github/FcfSaveInstc/refs/heads/main/medal.lua"
+			local url = "https://raw.githubusercontent.com/Devraj2010isme/BetterSaveinstance/refs/heads/main/Dependencies/Konstant%20V2.1.luau"
 			local konstant = loadstring(HttpGet(url, true))()
 			GLOBAL_ENV.decompile = konstant.decompile
-			if __DEBUG_MODE then __DEBUG_MODE("Medal Decompiler loaded") end
+			if __DEBUG_MODE then __DEBUG_MODE("Konstant Decompiler loaded") end
 		end
 	end
 	do
@@ -2683,7 +2659,15 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 		if special then
 			if gethiddenproperty then
-				if EXECUTOR_NAME == "Velocity" and not ArrayToDict({"BinaryString", "SharedString"})[property.ValueType] then
+				if EXECUTOR_NAME == "Nihon" and not ArrayToDict({"BinaryString", "SharedString"})[property.ValueType] then
+					property.CanRead = false
+					return __BREAK
+				end
+				if IgnoreSpecialStrings and property.ValueType == "string" then
+					property.CanRead = false
+					return __BREAK
+				end
+				if IgnoreSpecialClassProperties and property.Category == "Class" then
 					property.CanRead = false
 					return __BREAK
 				end
@@ -2716,6 +2700,18 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 				if ok then
 					raw = result
 				elseif gethiddenproperty then -- ! Be careful with this 'and gethiddenproperty' logic
+					if EXECUTOR_NAME == "Nihon" and not ArrayToDict({"BinaryString", "SharedString"})[property.ValueType] then
+						property.CanRead = false
+						return __BREAK
+					end
+					if IgnoreSpecialStrings and property.ValueType == "string" then
+						property.CanRead = false
+						return __BREAK
+					end
+					if IgnoreSpecialClassProperties and property.Category == "Class" then
+						property.CanRead = false
+						return __BREAK
+					end
 					ok, result = pcall(gethiddenproperty, instance, propertyName)
 
 					if ok then
@@ -3321,7 +3317,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 													and instance:IsA("Script")
 													and instance.RunContext ~= Enum.RunContext.Client
 											then
-												value = "--  " -- TODO: Could be not just server scripts in the future
+												value = "" -- TODO: Could be not just server scripts in the future
 											else
 												local IsCompilationError = false
 												if CompilationError then
@@ -3357,7 +3353,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 											end
 										end
 
-										value = "--  \n\n"
+										value = ""
 											.. (hasLinkedSource and "-- Original Source: https://assetdelivery.roblox.com/v1/asset/?" .. (LinkedSource_type or "id") .. "=" .. (LinkedSource or LinkedSource_Url) .. "\n\n" or "")
 											.. value
 									end
@@ -3515,80 +3511,8 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			save_extra("Nil Instances", nil_instances)
 		end
 
-		if OPTIONS.ReadMe then
-			save_extra(
-				"README",
-				nil,
-				"Script",
-				{Source = {raw = "--[[\n"
-					.. (#RecoveredScripts ~= 0 and "\t\tIMPORTANT: Original Source of these Scripts was Recovered: " .. service.HttpService:JSONEncode(
-						RecoveredScripts
-					) .. "\n" or "")
-					.. [[
-		Thank you for using BetterSaveinstance (Fork of UniversalSynSaveInstance). Their discord: https://discord.gg/wx4ThpAsmw.
-
-		If you didn't save in Binary (rbxl) - it's recommended to save the game right away to take advantage of the binary format & to preserve values of certain properties if you used IgnoreDefaultProperties setting (as they might change in the future).
-		You can do that by going to FILE -> Save to File As -> Make sure File Name ends with .rbxl -> Save
-
-		ServerStorage, ServerScriptService and Server Scripts are IMPOSSIBLE to save because of FilteringEnabled.
-
-		If your player cannot spawn into the game, please move PlayerModule in StarterPlayer somewhere else or delete it. Then run `game:GetService("Players").CharacterAutoLoads = true`.
-		And use "Play Here" to start game instead of "Play" to spawn your Character where your Camera currently is.
-
-		If the chat system does not work, please use the explorer and delete everything inside the TextChatService/Chat service(s). 
-		Or run `game:GetService("Chat"):ClearAllChildren() game:GetService("TextChatService"):ClearAllChildren()`
-				
-		If Union and MeshPart collisions don't work, run the script below in the Studio Command Bar:
-				
-				
-		local C = game:GetService("CoreGui")
-		local D = Enum.CollisionFidelity.Default
-				
-		for _, v in game:GetDescendants() do
-			if v:IsA("TriangleMeshPart") and not v:IsDescendantOf(C) then
-				v.CollisionFidelity = D
-			end
-		end
-		print("Done")
-				
-		If you can't move the Camera, run this script in the Studio Command Bar:
-			
-		workspace.CurrentCamera.CameraType = Enum.CameraType.Fixed
-		
-		Or Destroy the Camera.
-
-		This file was generated with the following settings:
-		]]
-					.. service.HttpService:JSONEncode(OPTIONS)
-					.. "\n\n\t\tElapsed time: "
-					.. os.clock() - elapse_t
-					.. " PlaceId: "
-					.. game.PlaceId
-					.. " PlaceVersion: "
-					.. game.PlaceVersion
-					.. " Client Version: "
-					.. version()
-					.. " Executor: "
-					.. (identify_executor and table.concat({ identify_executor() }, " ") or "Unknown")
-					.. "\n]]", ValueType = "ProtectedString"}}
-			)
-		end
-		do
-			local tmp = { "<SharedStrings>" }
-			for identifier, value in SharedStrings do
-				table.insert(tmp, '<SharedString md5="' .. identifier .. '">' .. value .. "</SharedString>")
-			end
-
-			if 1 < #tmp then -- TODO: This sucks so much because we try to iterate a table just to check this (check above)
-				savebuffer[savebuffer_size] = table.concat(tmp)
-				savebuffer_size += 1
-				savebuffer[savebuffer_size] = "</SharedStrings>"
-				savebuffer_size += 1
-			end
-		end
-
 		savebuffer[savebuffer_size] =
-			"</roblox><!--   -->"
+			"</roblox><!-- Saved by FCF-FCF-GITHUB -->"
 		savebuffer_size += 1
 		save_cache(true)
 		do
