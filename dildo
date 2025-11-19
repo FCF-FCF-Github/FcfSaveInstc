@@ -1,0 +1,19 @@
+getgenv().decompile = function(script_instance)
+  local bytecode = getscriptbytecode(script_instance)
+  local encoded = crypt.base64encode(bytecode)
+  return request(
+    {
+      Url = "http://localhost:3000/luau/decompile",
+      Method = "POST",
+      Body = encoded
+    }
+  ).Body
+end
+
+local Params = {
+ RepoURL = "https://raw.githubusercontent.com/Devraj2010isme/BetterSaveinstance/refs/heads/main/",
+ SSI = "saveinstance",
+}
+local synsaveinstance = loadstring(game:HttpGet(Params.RepoURL .. Params.SSI .. ".luau", true), Params.SSI)()
+local Options = {mode = "full", NilInstances = true, IsolateLocalPlayerCharacter = true, IsolateLocalPlayer = true} -- Documentation here: https://github.com/Devraj2010isme/BetterSaveinstance/blob/main/README.md
+synsaveinstance(Options)
