@@ -3,5 +3,5 @@ local Params = {
  SSI = "saveinstance",
 }
 local synsaveinstance = loadstring(game:HttpGet(Params.RepoURL .. Params.SSI .. ".luau", true), Params.SSI)()
-local Options = {mode = "full", NilInstances = true, IsolateLocalPlayerCharacter = true, IsolateLocalPlayer = true} -- Documentation here: https://github.com/Devraj2010isme/BetterSaveinstance/blob/main/README.md
+local Options = {mode = "full", NilInstances = true, IsolateLocalPlayerCharacter = true, IsolateLocalPlayer = true, decomptype = "custom"} -- Documentation here: https://github.com/Devraj2010isme/BetterSaveinstance/blob/main/README.md
 synsaveinstance(Options)
