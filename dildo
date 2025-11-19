@@ -1,15 +1,3 @@
-getgenv().decompile = function(script_instance)
-  local bytecode = getscriptbytecode(script_instance)
-  local encoded = crypt.base64encode(bytecode)
-  return request(
-    {
-      Url = "http://localhost:3000/luau/decompile",
-      Method = "POST",
-      Body = encoded
-    }
-  ).Body
-end
-
 local Params = {
  RepoURL = "https://raw.githubusercontent.com/Devraj2010isme/BetterSaveinstance/refs/heads/main/",
  SSI = "saveinstance",
